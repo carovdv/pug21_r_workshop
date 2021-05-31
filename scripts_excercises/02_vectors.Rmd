@@ -43,6 +43,7 @@ Observe your environment pane while running it!
 
 ```{r}
 # clear envinronment
+rm(list = ls())
 ```
 
 People sometimes mock how unnecessarily complex it is - there just could have been a clear, simple function with a sensible name to achieve this.
@@ -51,12 +52,16 @@ So if I create a variable ...
 
 ```{r}
 # create dummy variable
+var_test <- 25
+var_test1 <- 30
+ls()
 ```
 
 ... I can make it disappear from the environment like this:
 
 ```{r}
 # remove it from the environment
+rm(var_test, var_test1)
 ```
 
 If we want to clear the whole environment, we don't want to name all the variables that are in there individually.
@@ -73,6 +78,8 @@ Instead of explaining what vectors are, it's easiest to first look at one:
 
 ```{r}
 # a vector with whole numbers
+c(1,7,12,4,2)
+c(9, 7, 5, 3, 1)
 ```
 
 You can see that this vector contains four numbers.
@@ -83,18 +90,21 @@ Here is another one:
 
 ```{r}
 # a vector with numbers that have different decimal places
+c(2, 6.1, 9.234, 1.23)
 ```
 
 And another one:
 
 ```{r}
 # a vector with characters
+c("Hallo", "Hey", "Ciao")
 ```
 
 And another one:
 
 ```{r}
 # a vector with logicals
+c(TRUE, FALSE, TRUE, TRUE, FALSE)
 ```
 
 We see that a vector is a collection of elements, and it can consist of all the data types we previously got to know.
@@ -127,6 +137,7 @@ This will not work:
 
 ```{r error = TRUE}
 # a vector without c()
+c(3, 5, 2)
 ```
 
 It's likely that you will forget `c()` a lot in the beginning, but that will go away.
@@ -135,16 +146,55 @@ Of course, vectors can be saved into variables, just like we did with single ele
 
 ```{r}
 # store vector in a variable
+my_vector <-  c(1,4,9,12)
+# 1:3 = 3 Zahlen und numerisch
 # print vector
+my_vector
+(my_vector <-  c(1,4,9,12))
 ```
 
 [^one_element_vector]: In fact, we worked with vectors before! When we have e.g. `"hello"`, that is a one-element character vector. And `2` is a one-element integer vector. We don't need `c()` here, because we don't combine anything.
 
 1.1) By the way: I sneaked in a vector in disguise in the "basics" exercises that doesn't use the `c()` function. Can you find it?
+```{r}
+c(1:4)
+```
 
 1.2) Create some vectors. Create one vector with characters, one with whole numbers, one with decimals and one with logicals. Save them all into different variables.
+```{r}
+vector_char <- c("Koeln", "Berlin", "Hamburg", "München")
+vector_char
+
+vector_num <- c(2:5, 13)
+vector_num
+
+vector_num2 <-c(3:6, 14)
+vector_num2
+
+vector_dec <- c(1.32, 1.36, 1.39, 2.42)
+vector_dec
+
+vector_log <- c(FALSE, TRUE, TRUE, FALSE)
+vector_log
+```
+
 
 1.3) We saw that the `c()` function combines elements into a vector, but it can also combine vectors! Try to combine some of the vectors you previously created using the `c()` function.
+```{r}
+vector1 <-  c(1, 5, 9)
+vector2 <-  c(1, 9)
+c(vector1, vector2, 5, 12, 30)
+
+vector3 <-  c(1, 24, 353)
+vector4 <-  c("Kaffee", "Kuchen")
+c(vector3, vector4)
+# man kann keine Daten mischen, wenn ich numerische mit character mische, dann werden darauf characters
+
+c(vector_num + vector_num2)
+c(vector_num, vector_num2, vector_log, vector_char)
+c(vector_char, vector_dec)
+```
+
 
 ### Mathematical operations
 
@@ -158,10 +208,19 @@ c(1, 2, 5) + 1
 What do you expect the following code will produce?
 
 1.2) `c(1, 2, 5) - 1`
+```{r}
+c(1, 2, 5) - 1
+```
 
 1.3) `c(1, 2, 5) * 2`
+```{r}
+c(1, 2, 5)*2
+```
 
 1.4) `c(1, 2, 5) / 2`
+```{r}
+c(1, 2, 5) / 2
+```
 
 Vectors are one of the most important concepts of `R`.
 Sure, other programming languages have similar things, but what is really important in `R` is that a lot of things are "vectorised".
@@ -169,6 +228,7 @@ That means that functions work on entire vectors, or that clever combinations of
 
 That is, things get interesting when we use mathematical operations involving several multi-element vectors.
 What happens here?
+numbers are added element wise 
 
 ```{r}
 c(2, 4, 6) + c(1, 0, 1)
@@ -178,14 +238,26 @@ Let's play the same game again.
 What do you think these lines of code will produce?
 
 1.5) `c(2, 4, 6) - c(1, 0, 1)`
+```{r}
+hello <- c(2, 4, 6) - c(1, 0, 1)
+```
 
 1.6) `c(2, 4, 6) * c(1, 0, 1)`
+```{r}
+goodbye <- c(2, 4, 6) * c(1, 0, 1)
+```
 
 1.7) `c(2, 4, 6) / c(1, 2, 1)`
+```{r}
+ciao <- c(2, 4, 6) / c(1, 2, 1)
+```
 
 However, things get *really* wild when we use vectors that do not have the same length.
 
 Can you see what happened here?
+it repeats this vector and it acts like its 1, 10, 1, 10
+this is something that is really important 
+whenever one vector is a multiple of the other, R will do this 
 
 ```{r}
 c(2, 4, 6, 5) + c(1, 10)
@@ -194,10 +266,20 @@ c(2, 4, 6, 5) + c(1, 10)
 Let's look at this concept some more.
 
 1.8) Can you multiply every other element of `c(2, 4, 6, 4, 9, 12)` with 2?
+```{r}
+c(2, 4, 6, 4, 9, 12) * c(1, 2)
+```
 
 1.9) Given `c(2, 4, 6, 4, 9, 12)`, subtract 1 from the first element, 2 from the second, 3 from the third, then again 1 from the fourth and so on.
+```{r}
+c(2, 4, 6, 4, 9, 12) - c(1, 2, 3)
+c(2, 4, 6, 4, 9, 12) - c(1:3)
+c(2, 4, 6, 4, 9, 12) - 1:3 # preferred solution
+c(2, 4, 6, 4, 9, 12) - c(1, 2, 3, 1, 2, 3)
+```
 
 1.10) Run the following code cell. What happened here? Is that bad?
+there is an error message, it starts again from the start
 
 ```{r}
 c(2, 4, 6, 4, 9, 12) + c(1, 2, 3, 4)
