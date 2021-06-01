@@ -54,7 +54,8 @@ If you start typing the package name without the quotation marks, `R` will start
 
 ```{r eval=FALSE}
 # install the tidyverse
-# install.packages("tidyverse")
+if (!suppressWarnings(require(tidyverse, quietly=TRUE))) 
+										install.packages("tidyverse")
 ```
 
 However, just because you have a package, that does not mean you can use it.
@@ -71,6 +72,8 @@ Let's load the `tidyverse`.[^loading_quotation]
 ```{r}
 # load the tidyverse
 library(tidyverse)
+search()
+stats::filter() # be explicit what function from what package you want to use 
 ```
 
 One of the most popular and noticeable features of the `tidyverse` is the pipe operator, which looks like this: `%>%`.[^pipe_shortcut]
@@ -93,7 +96,7 @@ They are then executed from the inside towards the outside.
 
 ```{r}
 # take the mean of the example vector and round the result to two decimal places (base R style)
-round(mean(example_vector), 2)
+round(mean(example_vector), 2) # compute the mean and round it by 2 decimal places
 ```
 
 We could also do the same thing stepwise (and sometimes this is the best approach if you want your code to be readable).
@@ -108,11 +111,14 @@ In the tidyverse, we chain those functions together using the pipe operator:
 
 ```{r}
 # this time: tidy style!
-mean(example_vector) %>% round(2)
-```
+mean(example_vector) %>% 
+  round(2)
 
-```{r}
-example_vector %>% mean() %>% round(2)
+example_vector %>% 
+  mean() %>% 
+  round(2) # production line, pipe the result in the next function
+# reading from left to right, take the variable and put the mean in it and then take the mean and round it 
+# use %>%  as a shortcut
 ```
 
 Note how we can leave out the actual data argument every time.
@@ -136,10 +142,13 @@ another_vector <- c(3, -2, 5, 99, -132.5)
 # use abs on the vector, then take the mean and transform the result into a character
 as.character(mean(abs(another_vector)))
 ```
-
 ```{r}
-another_vector %>% abs() %>% mean() %>% as.character()
+another_vector %>% 
+  abs() %>% 
+  mean() %>% 
+  as.character()
 ```
+
 
 1.2) Let's make things a bit trickier with additional arguments.
 
@@ -152,14 +161,18 @@ vector_with_NAs <- c(3, -2, 5, NA, 99, -132.5, NA)
 # and turn into character
 as.character(mean(head(abs(vector_with_NAs), 4), na.rm = TRUE))
 ```
-
 ```{r}
 vector_with_NAs %>% 
-  abs() %>% 
-  head(4) %>% 
-  mean(na.rm = TRUE) %>% 
-  as.character()
-```
+  abs(.) %>% 
+  head(., 4) %>% 
+  mean(., na.rm = TRUE) %>% 
+  as.character(.) # include the () so it is clear that these are functions
+# we can identify arguments and functions by its position 
+# there is an argument () that we cannot see it/it is hidden... it is always the data here
+# we can insert the . so we are explicit... look there is data there
+# hit return after every pipe
+# use strg+i if you want to autocorrect the position of the code 
+``` 
 
 1.3) How do we get this into a pipe?
 
@@ -172,13 +185,12 @@ This does not work:
 ```{r}
 another_vector * 2 %>% mean()
 ```
-
 ```{r}
-(another_vector * 2) %>% mean()
+(another_vector * 2) %>% mean(.)
+rm(list = ls())
 ```
 
 ## Data wrangling
-
 ### Selecting and filtering
 
 The pipes are all fun and games for vectors, but they unlock their true potential when applied to data frames.
@@ -197,17 +209,16 @@ I want to keep the participants' age, the gender, whether they're married or not
 
 ```{r}
 # select age, gender, married, and Q1 - Q26
-nerd %>% 
-  select(age, gender, married, Q1:Q26)
-```
+nerd %>%
+  select (age, gender, married, Q1:Q26)
+# attention: R will take everything that is in between Q1 and Q26 
+# what is tidy about tidyverse is that I do not have to repeat the dataset before every variable
 
-```{r}
-nerd %>% 
-  select(age, gender, married, starts_with("Q"))
-```
+# alternative approach: use function starts_with
+nerd %>%
+  select (age, gender, married, starts_with("Q"))
 
-```{r}
-# the base R way
+# the same function in base R:
 nerd[c("age", "gender", "married", paste0("Q", 1:26))]
 ```
 
@@ -231,19 +242,29 @@ The corresponding code would look like this:
 
 ```{r}
 # select voted, age and then the rest of the data frame
+head(nerd)
+
 nerd %>% 
+  select(voted, age, everything()) # everything = the rest of the data frame
+# it is not changing the actual data frame nerd
+# nothing is saved unless you save it as a variable or overwrite it
+
+nerd1 <- 
+  nerd %>% 
   select(voted, age, everything())
+
+head(nerd1)
+head(nerd)
 ```
 
-Don't forget the `()` behind `everything`!
+Don't forget the `()` behind everything!
 
 1.4) I want to continue working with a reduced version of our data that only contains the columns `age`, `gender`, `married`, `voted`, `nerdy` and also `Q1` - `Q26`.
 Can you select these columns and save this reduced data frame in a variable called `nerd_red` ("nerd reduced")? 
-
 ```{r}
 nerd_red <- 
   nerd %>% 
-  select(age, gender, married, voted, nerdy, Q1:Q26)
+  select(age, gender, married, voted, nerdy, starts_with("Q")) # I can easily check if it is correct by commenting out the new data frame name
 ```
 
 There are further options for selecting subsets of data.
@@ -256,107 +277,112 @@ Let's for example only filter out the female participants, which are coded as `2
 nerd_red %>% 
   filter(gender == 2)
 ```
-
 ```{r}
-# the base R way
+# how to do this in base r
 nerd_red[nerd_red$gender == 2, ]
 ```
-
 
 We use the same notation as for logical comparisons, so make sure to use `==` instead of `=`!
 Here, we filter for women below the age of 30.
 
 ```{r}
 # filter for women below the age of 30 - use &
-nerd_red %>% 
-  filter(gender == 2 & age < 30)
+nerd %>% 
+  filter(gender == 2) %>% 
+  filter(age < 30)
+
+nerd %>% 
+  filter(gender == 2 & age < 30) 
+
 ```
 
 Interestingly, the logical `&` can be replaced with a comma in `filter()`.
 
 ```{r}
 # filter for women below the age of 30 - use ,
-nerd_red %>% 
-  filter(gender == 2, age < 30)
+nerd %>% 
+  filter(gender == 2, age < 30) # the , is equal to &
 ```
 
 Filter `nerd_red`. Feel free to look at the code you wrote earlier in the course for the logical comparisons. Choose ...
 
-2.1) ... anyone who is either 22 **or** 26 years old. There are several ways to achieve this!
-
+2.1) ... anyone who is either 22 or 26 years old. There are several ways to achieve this! 
 ```{r}
 nerd_red %>% 
-  filter (age == 22 | age == 26)
-```
+  filter(age == 22 | age == 26) # 74 participants
 
-```{r}
+# alternative approach:
 nerd_red %>% 
-  filter(age %in% c(22, 26))
-```
+  filter(age %in% c(22, 26)) # is this "age 22 - 26" a part of this set? and if yes, how many? 
 
-```{r}
 c("tea", "biscuits", "cake") %in% "tea"
-"tea" %in% c("tea", "biscuits", "cake")
+"tea" %in% c("tea", "biscuits", "cake") 
 ```
 
-2.2) ... anyone who is either a man (`gender == 1`) **or** older than 30.
-
+2.2) ... anyone who is either a man (`gender == 1`) or older than 30.
 ```{r}
 nerd_red %>% 
-  filter(gender == 1 | age > 30)
+  filter(gender == 1 | age > 30) # 452 participants 
 ```
 
-2.3) ... anyone who is non-binary (`gender == 3`) and who is currently married or has previously been (1 = Never married, 2 = Currently married, 3 = Previously married).
-
+2.3) ... anyone who has a non-binary (`gender == 3`) and who is currently married or has previously been (1 = Never married, 2 = Currently married, 3 = Previously married).
 ```{r}
+nerd_red %>% 
+  filter(gender == 3) %>% 
+  filter(married == 2 | married == 3)
+
 nerd_red %>% 
   filter(gender == 3 & married != 1)
 
 nerd_red %>% 
-  filter(gender == 3, !married == 1)
-```
+  filter(gender == 3 & !married == 1)
 
-```{r}
 nerd_red %>% 
-  filter(gender == 3 & married == 2 | gender == 3 & married == 3)
-```
+  filter(gender == 3 & married >= 2)
 
-```{r}
 nerd_red %>% 
-  filter(gender == 3, married %in% 2:3)
+  filter(gender == 3 & married %in% c(2, 3))
 ```
 
 2.4) The column `nerdy` contains the agreement to the statement "I see myself as nerdy" (1 = disagree strongly - 7 = agree strongly). How many women have the highest self-reported nerdiness? How many have the lowest self-reported nerdiness? What about the men? Solve this task using filters, but also try `table()`.
-
 ```{r}
 nerd_red %>% 
-  filter(gender == 2, nerdy == 7) %>% 
-  nrow()
-```
+  filter(gender == 2 & nerdy == 7) %>% 
+  nrow(.) 
 
-```{r}
 nerd_red %>% 
-  filter(gender == 2, nerdy == 1) %>% 
-  nrow()
-```
+  filter(gender == 2 & nerdy == 1) %>% 
+  nrow(.) 
 
-```{r}
+nerd_red %>% 
+  filter(gender == 1 & nerdy == 7)  %>% 
+  nrow(.)
+
 table(nerd_red$nerdy)
-```
-
-```{r}
 table(nerd_red$nerdy, nerd_red$gender)
-```
 
-```{r}
-nerd_table <- nerd_red %>% 
+nerd_red %>% 
+  group_by(gender, nerdy) %>% 
+  count(.)
+# counting, how many rows I have for each combination of gender and nerdy
+
+nerd_red %>% 
+  group_by(gender) %>% 
+  count(.)
+
+nerd_red %>% 
+  group_by(gender) %>% 
+  count(., name = "number_of_people")
+
+nerd_table <- 
+nerd_red %>% 
   group_by(gender, married) %>% 
-  count(name = "number_of_people")
-```
+  count(., name = "number_of_people")
+# there are 285 men that were never married
+# there are 51 men that are currently maried
 
-```{r}
-nerd_table %>% 
-  ungroup()
+nerd_table
+ungroup(nerd_table) # remember to ungroup after you grouped 
 ```
 
 When looking at the data summary, we already noticed that some of the reported values for age are impossible.
@@ -366,17 +392,13 @@ We want to exclude these guys as well.
 
 ```{r}
 # table the married column
-table(nerd_red$married)
-```
 
-```{r}
 nerd_red %>% 
   group_by(married) %>% 
-  count()
-```
+  count (.)
+# marital status is supposed to be 1 - 3, n = 5 with 0 
 
-```{r}
-summary(nerd_red$age)
+summary(nerd_red$age) # maximum age of 38822.00 years 
 ```
 
 Note that there is no output when I assign something to a variable, so I have to call the variable `nerd_red` again on order to display it.[^display_parentheses]
@@ -386,92 +408,100 @@ Note that there is no output when I assign something to a variable, so I have to
 ```{r}
 # filter out people with implausible marriage status and age
 # overwrite nerd_red
-nerd_red <- 
-  nerd_red %>% 
-  filter(married %in% 1:3,
-         age %in% 0:100)
-```
 
-```{r}
 nerd_red %>% 
-  filter(married %in% 1:3,
-         between(age, 0, 100))
-```
+  filter(married %in% 1:3) # 995 people, - 5 people without marriage = 0 
 
+nerd_red <-
+nerd_red %>% 
+  filter(married %in% 1:3, 
+         age %in% 0:100)
+
+```
 
 2.4) After filtering, what is the maximum age?
-
 ```{r}
 max(nerd_red$age)
-```
 
-```{r}
-nerd_red$age %>% max()
-nerd_red %>% max(.$age)
+nerd_red %>% 
+  max(.$age)
+
+nerd_red$age %>% 
+  max()
 ```
 
 2.5) How many people of each gender are included in the data?
-
 ```{r}
+nerd_red$gender %>% 
+  table()
+
 table(nerd_red$gender)
-```
 
-```{r}
 nerd_red %>% 
   group_by(gender) %>% 
-  count()
-```
+  count(., name = "number_of_people")
 
-```{r}
 nerd_red %>% 
-  count(gender)
+  count(gender) 
+
 ```
 
 2.6) How many people per marital status do we have?
-
 ```{r}
 nerd_red %>% 
   count(married)
 ```
 
 2.7) How many people did we exclude in total?
-
 ```{r}
-nerd %>% nrow() - nerd_red %>% nrow()
-```
+nerd %>%
+  nrow(.) - nerd_red %>% 
+  nrow(.)
 
-```{r}
-nrow(nerd) - nerd_red %>% count
-```
+nrow(nerd) - nerd_red %>% 
+  count(.)
+# difference between a tiblr and a data frame
+# in a tiblr.. only the first 6 rows will be printed 
+# maybe a tiblr cannot be used in the same 
 
-```{r}
 nrow(nerd) - nrow(nerd_red)
 ```
 
 2.8) Check whether the `nerdy` column has only valid values, i.e. values from 1 - 7. What would your strategy be? Filter out invalid values if necessary.
-
 ```{r}
+table(nerd_red$nerdy) # or
+
 nerd_red %>% 
   count(nerdy)
-```
 
-```{r}
+nerd_red <-
+  nerd_red %>% 
+  filter(nerdy >= 1)
+
+# alternative approach 
 nerd_red <- 
   nerd_red %>% 
   filter(nerdy %in% 1:7)
+
 ```
 
 2.9) Check whether the `voted` column has only valid entries (1 or 2). Filter out invalid values if necessary.
-
 ```{r}
+table(nerd_red$voted)
+
 nerd_red %>% 
   count(voted)
-```
 
-```{r}
 nerd_red <- 
   nerd_red %>% 
+  filter(voted >= 1)
+
+nerd_red %>% 
   filter(voted %in% 1:2)
+
+head(nerd_red)
+
+nrow(nerd) - nrow(nerd_red)
 ```
 
 ## Extracting single columns
@@ -479,21 +509,23 @@ nerd_red <-
 We know how to extract a vector from a data frame.
 
 3.1) Quick recap: Save the `age` column into a single vector.
-
 ```{r}
-age <- nerd$age
+age <- nerd_red$age
 ```
 
 But what if we modified our data frame with a pipe and want to quickly extract one column?
 Sure, we could save the modified data frame and then extract the column.
 
 3.2) Save a data frame where you filter all participants who are younger than 20. Then extract the age column.
-
 ```{r}
-nerd_young <- nerd_red %>% 
-  filter(age < 20)
+nerd_young <-
+nerd_red %>% 
+  filter(age < 20) # speichere ein neues Datenset, in dem nur die Personen sind, die < 20 Jahre alt sind
 
-age_young <- nerd_young$age
+age_young <-nerd_young$age # speichere eine neue Variable, in der nur das Alter ist
+age_young
+
+# really umstaendlicher weg... creating a new data set 
 ```
 
 However, we can do all of this in one go using the `pull()` function.
@@ -504,6 +536,7 @@ However, we can do all of this in one go using the `pull()` function.
 nerd_red %>% 
   filter(age < 20) %>% 
   pull(age)
+# use pull if you want to filter a single variable
 ```
 
 You might wonder why we don't just use `select()` to do the job.
@@ -516,7 +549,11 @@ Can you see what the problem is?
 nerd_red %>% 
   filter(age < 20) %>% 
   select(age)
+# we only selected the age column, but the output looks different 
+# pull... we get the data as a single vector 
+# select... we get a table with one column/a data frame
 ```
+
 
 ## Sorting data
 
@@ -546,17 +583,17 @@ nerd_red %>%
 ```
 
 4.1) Use the code above, but switch the order of gender and age. What happens?
-
 ```{r}
 nerd_red %>% 
   arrange(gender, age)
+# it is first sorting by gender and within gender group it is sorting by age 
 ```
 
 4.2) Arrange `nerd_red` by `voted` and `age`. Let `voted` be ascending and `age` descending.
-
 ```{r}
 nerd_red %>% 
-  arrange(voted, desc(age))
+  arrange(voted, desc(age)) # the default setting is ascending order and only if you do not want it you use desc
+?arrange
 ```
 
 ## Adding columns
@@ -575,7 +612,8 @@ Here is how things would work for our toy example:
 ```{r}
 # create a column with the (approximate) birth year - add it before the gender column
 nerd_red %>% 
-  mutate(birthyear = 2018 - age, .before = gender)
+  mutate(birthyear = 2018 - age, .before = gender) # mutate(name of the new column), by default it is sorted at the end of the data frame
+?mutate
 ```
 
 I used the `.before` argument so the new column would be added before the column `gender`.
@@ -587,6 +625,7 @@ Note that `birthyear` has not been saved to `nerd_red` right now:
 ```{r}
 # show names of nerd_red
 names(nerd_red)
+str(nerd_red)
 ```
 
 In order to do that, we would explicitly need to overwrite `nerd_red`, which we won't do here, because `birthyear` is a very useless column for us.
@@ -598,38 +637,46 @@ That doesn't make sense in this example, but the opposite case is often true, wh
 ```{r}
 # create a column called age_character (the age as character) and put it before the gender column
 # overwrite nerd_red
-nerd_red <- 
-  nerd_red %>% 
-  mutate(age_character = as.character(age), .after = age)
+nerd_red <-
+nerd_red %>% 
+  mutate(age_character = as.character(age), .before = gender)
 
-nerd_red
+nerd_red %>% 
+  mutate(age_character = as.character(age), .after = gender) 
+```
+```{r}
+# how can I arrange the columns in my data frame? 
+nerd_red %>% 
+  select(married, gender, age, everything())
 ```
 
 5.1) By overwriting `nerd_red`, I permanently added the `age_character` column to the data frame. Can you turn it into a numeric column again? You can replace it using the old column name (i.e. `mutate(age_character = ...)`). (Of course, the name will be pretty misleading then.)
-
 ```{r}
+nerd_red <-
+  nerd_red %>% 
+  mutate(age_character = as.numeric(age_character), .before = gender)
+
+nerd_red %>% 
+ mutate(age_character = age, .before = gender)
+  
+# dbl stands for double class. A double-precision floating point number.
+# It is a data type defined to hold numeric values with decimal points (dbl came from double)
+
+# modifying a column works the same way as creating a new column: mutate is modyfying existing one and adding new columns
+
 nerd_red %>% 
   mutate(
-    age2 = age - 100, .before = gender,
+    age2 = age - 1000, .before = gender,
     age = age + 1000
   )
 ```
 
-```{r}
-nerd_red %>% 
-  mutate(age_character = as.numeric(age_character))
-```
-
-```{r}
-nerd_red %>% 
-  mutate(age_character = age, .before = gender)
-```
-
 5.2) According to the code book, `gender` as been coded as 1 = Male, 2 = Female, 3 = Other. Assume there has been a mistake and it's actually 0 = Male, 1 = Female, 2 = Other. How can you correct the mistake? Don't overwrite the data frame, because we want to keep the old (correct) `gender` column as it is.
-
 ```{r}
 nerd_red %>% 
   mutate(gender = gender - 1)
+# nerd_red is not overwritten, it does not affect the data frame unless I overwrite it
+# we are overwritting this existing column, but only in the output 
 ```
 
 Now we still have the useless `age_character` column in our data. If we want to get rid of it, we can do so by simply "deselecting" it:
@@ -637,17 +684,18 @@ Now we still have the useless `age_character` column in our data. If we want to 
 ```{r}
 # deselect the age_character column
 # overwrite nerd_red
+nerd_red <-
+nerd_red %>% 
+  select(-age_character)
+# deselect a column with the function select
+
+# alternative approach
+nerd_red %>% 
+  select(!age_character)
+
+# if you want to deselect more columns
 nerd_red %>% 
   select(-c(age_character, gender, nerdy))
-```
-
-```{r}
-nerd_red <- nerd_red %>% 
-  select(!age_character)
-```
-
-```{r}
-nerd_red
 ```
 
 ### Sums
@@ -658,8 +706,6 @@ This is how we would do that:
 
 ```{r}
 # calculate the sum of Q1 and Q2 and save it in a column sum_Q1_Q2 - put it after Q2
-nerd_red %>% 
-  mutate(sum_Q1_Q2 = Q1 + Q2, .after = Q2)
 ```
 
 We can see how the columns `Q1` and `Q2` add up per row in our new column.
@@ -694,25 +740,6 @@ Note that I overwrote `nerd_red` with the version of `nerd_red` that now has a c
 # across ...
 # Q1 - Q26
 # ungroup at the end
-nerd_red %>% 
-  rowwise() %>% 
-  mutate(nerd_score = sum(across(Q1:Q26)), .before = Q1) %>% 
-  ungroup()
-```
-
-```{r}
-# base R way
-nerd_red$nerd_score <- 
-  rowSums(nerd_red[ , paste0("Q", 1:26)])
-```
-
-```{r}
-paste0("Q", 1:5)
-paste("Q", 1:5)
-```
-
-```{r}
-paste0(c("A", "B"), 1:4)
 ```
 
 ## Recoding data
@@ -725,29 +752,6 @@ This is how we would recode the gender column:
 ```{r}
 # use case_when() to recode the gender column
 # overwrite nerd_red
-nerd_red <- 
-  nerd_red %>% 
-  mutate(
-    gender = case_when(
-      gender == 1 ~ "male",
-      gender == 2 ~ "female",
-      gender == 3 ~ "other"
-    )
-  )
-
-nerd_red 
-```
-
-```{r}
-nerd_red %>% 
-  mutate(
-    married = case_when(
-      married == 1 ~ married,
-      married == 2 ~ as.integer(999),
-      TRUE ~ as.integer(12345)
-    )
-  )
-
 ```
 
 Let's unpack this: `case_when()`, as the name suggests, does stuff when a certain case occurs.
@@ -768,17 +772,15 @@ For example, if we want to classify these numbers into "one digit" or "more than
 some_numbers <- c(2, 24, 12, 5, 1, 353, 1)
 
 # use ifelse to put "more" when some_numbers has more than one digit, and "one" if it's one digit
-ifelse(some_numbers < 10, "one digit", "more than one digit")
 ```
 
 We can also modify the data based on this.
 For example, we could multiply the data with -1 whenever it has more than one digit, and leave it as it is when it is one digit.
 
 ```{r}
-# multiply some_numbers with -1 whenever it has more than one digit, and leave it as it is 
+# multiply ome_numbers with -1 whenever it has more than one digit, and leave it as it is 
 # when it is one digit.
 # Question: What does some_numbers contain now?
-ifelse(some_numbers < 10, some_numbers, some_numbers * -1)
 ```
 
 Note how we have to call `some_numbers`, even if we're leaving things unchanged.
@@ -787,24 +789,7 @@ For every position of that vector, you contemplate whether you should put in the
 
 6.1) Recode the `married` column. It's 1 = Never married, 2 = Currently married, 3 = Previously married. Overwrite `nerd_red` with the version that contains the recoded column.
 
-```{r}
-nerd_red <- 
-  nerd_red %>% 
-  mutate(
-    married = case_when(
-      married == 1 ~ "never married",
-      married == 2 ~ "currently married",
-      married == 3 ~ "previously married"
-    )
-  )
-```
-
 6.2) Recode the `voted` column. It's 1 = Yes, 2 = No. Use `ifelse()`. Overwrite `nerd_red` with the version that contains the recoded column.
-
-```{r}
-nerd_red %>% 
-  mutate(voted = ifelse(voted == 1, "yes", "no"))
-```
 
 6.3) Like `ifelse()`, `case_when()` can be used outside of `mutate()`. Can you use `case_when()` with the following vector so that you:
 1) add 20 when the number is below 0
@@ -813,14 +798,6 @@ nerd_red %>%
 
 ```{r}
 some_more_numbers <- c(12, 0, 0, -4, 0, -12, 5, 2)
-```
-
-```{r}
-case_when(
-  some_more_numbers < 0 ~ some_more_numbers + 20,
-  some_more_numbers > 0 ~ some_more_numbers - 2,
-  some_more_numbers == 0 ~ 9999
-)
 ```
 
 ## Adding an id
@@ -834,18 +811,13 @@ We can add an id column to your data by numbering the rows.
 The tidyverse has a built-in function for this, which goes like:
 
 ```{r}
-# use rowid_to_column() to create a new id column named id (var = "id")
-nerd_red <- 
-  nerd_red %>% 
-  rowid_to_column(var = "id")
+# use rowid_to_column() to create a new id column named id (var = id)
 ```
 
 You could also number the rows like this:
 
 ```{r}
 # use nrow to create the same id column (add before age)
-nerd_red %>% 
-  mutate(id = 1:nrow(.), .before = age)
 ```
 
 **THIS IS A GITHUB PUSH CHECKPOINT**
