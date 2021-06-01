@@ -39,7 +39,7 @@ We start with loading the `tidyverse` and preprocessing our data.
 
 ```{r}
 library(tidyverse)
-source("05_nerd_preprocessing.R")
+source("nerd_preprocessing.R")
 ```
 
 By the way, I am sorry for this wild data fishing and multiple-testing expedition.
@@ -55,6 +55,9 @@ Since we will be using this data some more, we save it in a separate variable.
 
 ```{r}
 # create a variable called "nerd_fm" that only contains men and women
+nerd_fm <- 
+  nerd_red %>% 
+  filter(gender %in% c("male", "female"))
 ```
 
 Now for the t-test.
@@ -70,11 +73,19 @@ Which means we're back to our good old dollar operator.
 ```{r}
 # run a t-test with the nerd score as dependent variable and gender as grouping variable
 # use the formula notation
+t.test(nerd_fm$nerd_score ~ nerd_fm$gender) # I want the nerd_score grouped by gender 
+# default in R is Welch t-test b/c it does not assume equal variance (Varianzhomogenität)
 ```
 
 As you can see, the results are a little bit messy - but we get a lot of information.
 
 1.1) Quick reminder: Calculate the mean and the standard deviation of the nerd score for each gender and compare the group means with the otuput of the t-test.
+```{r}
+nerd_fm %>% 
+  group_by(gender) %>% 
+  summarise(mean_nerd = mean(nerd_score),
+            sd_nerd = sd(nerd_score))
+```
 
 You may be wondering why the degrees of freedom are not an even number.
 That is because within the `R` community, the default t-test option is the Welch's t-test.
@@ -83,7 +94,9 @@ In the Welch's t-test, the Welch (or Satterthwaite) approximation to the degrees
 If you don't want that, you can get a "SPSS-like" t-test like this:
 
 ```{r}
-# run the same t-test with var.equal = TRUE
+# run the same t-test for independent groups with var.equal = TRUE
+t.test(nerd_fm$nerd_score ~ nerd_fm$gender, var.equal = TRUE) # the nerd_score as the dependent variable, testing between the two groups (gender)
+# one single column that was grouped with another column
 ```
 
 In most cases, this won't drastically change the interpretation of our data.
@@ -98,9 +111,20 @@ We just add the argument `paired = TRUE`, and that's it - a paired t-test!
 
 ```{r}
 # run a paired t-test between Q1 and Q2
+t.test(nerd_fm$Q1, nerd_fm$Q2, paired = TRUE) # now we do not have a grouping variable
 ```
 
 1.1) Let's do the independent t-test between men and women again. But this time, use two separate vectors, i.e. one vector for the women and one for the men. Use `[]` and logical comparisons - take a look at the exercises with vectors for inspiration.
+```{r}
+nerd_fm$nerd_score [nerd_fm$gender == "male"]
+
+t.test(nerd_fm$nerd_score [nerd_fm$gender == "male"],
+       nerd_fm$nerd_score [nerd_fm$gender == "female"])
+# create seperate columns
+
+t.test(nerd_fm$nerd_score ~ nerd_fm$gender, var.equal = TRUE)
+# use on variable in one column that you can use as a grouping variable
+```
 
 1.2) Compare the nerd score between people who voted and people who didn't vote. Use the formula notation, and then the version with two separate vectors.
 
@@ -112,6 +136,10 @@ Of course, we cn also do a one-sample t-test.
 For example, we could check whether people score significantly higher than the middle option on the nerd questionnaire.
 
 1.5) How many points do you get on the nerd questionnaire if you always check the middle option?
+```{r}
+# 26 items, middle category = 4
+26*4 # 104
+```
 
 Now let's test whether our participants' scores are significantly different from what we would expect if someone would always score in the middle.
 We want to test a specific hypothesis - that the participants' score is greater than what you would get if you always choose the middle option - so we use a one-sided t-test.
@@ -119,6 +147,9 @@ Using the argument `alternative`, we can specify whether the t-test should be `"
 
 ```{r}
 # run a one-sided t-test with mu = ???
+t.test(nerd_fm$nerd_score, mu = 104, alternative = "greater")
+# one sided test
+# by default it is a two-sided
 ```
 
 The mean score of our participants is lower than 104, so it's not surprising that it is not significantly higher than that.
@@ -136,8 +167,14 @@ So we need a way of accessing the relevant numbers from our t-test.
 Luckily, we can get them using the dollar operator.
 
 2.1) Run the t-test from above that compared the nerd score between men and women. Save it into a variable. Then type the variable name with the dollar operator at the end of it and explore the autocomplete options RStudio provides you. What information can you extract?
+```{r}
+ttestgender <- t.test(nerd_fm$nerd_score ~ nerd_fm$gender, var.equal = TRUE)
+ttestgender$p.value
 
-2.2) This allows you to print your results right in your R Markdown document, e.g.: The p-value was [INSERT CODE HERE].
+t.test(nerd_fm$nerd_score ~ nerd_fm$gender, var.equal = TRUE)$p.value
+```
+
+2.2) This allows you to print your results right in your R Markdown document, e.g.: The p-value was `round(ttest_gender$p.value, 3)`.
 
 By the way, you don't need to save your t-test into a variable to be able to access its values.
 You can just add the dollar operator at the end like this (but autocompletion won't be available then):
@@ -152,8 +189,18 @@ You probably want to report effect sizes along with your t-test.
 For this, we need an additional package, which is conveniently named `effectsize`.
 
 3.1) Install and load the package `effectsize`.
+```{r}
+install.packages("effectsize")
+library(effectsize)
 
-3.2) The function `cohen_d()` from the package follows exactly the same logic as the `t.test()` function. Can you run an independent and a paired t-test, and then calculate the corresponding effect size?
+install.packages("rstatix")
+library(rstatix)
+```
+
+3.2) The function `cohen_d()` from the package follows exactly the same logic as the `t.test()` function. Can you run an independent and a paired t-test, and then calculate the corresponding effect size? `round(cohens_d(nerd_fm$nerd_score ~ nerd_fm$gender)$Cohens_d, 3)`
+```{r}
+round(cohens_d(nerd_fm$nerd_score ~ nerd_fm$gender)$Cohens_d, 3)
+```
 
 3.3) Extract the effect size and save the number into a variable.
 
@@ -163,6 +210,9 @@ Correlations follow a very similar logic as the functions we saw above.
 To test a correlation, we use the function `cor.test()`.
 
 4.1) I bet you are able to use `cor.test()` without me having to tell you how. Test whether there is a correlation between age and nerd score.
+```{r}
+cor.test(nerd_fm$age, nerd_fm$nerd_score)
+```
 
 4.2) Plot the correlation - age on the x axis, nerd score on the y axis.
 
