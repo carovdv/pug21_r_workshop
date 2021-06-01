@@ -766,3 +766,8 @@ a_vector[!is.na(a_vector)] # ! == is not, gib mir alle Elemente, die nicht missi
 Note how I'm filtering for all elements which are **not** `NA` in the last code, effectively getting rid of all missing values in the data.
 
 **THIS IS A GIT PUSH CHECKPOINT!**
+
+```{r}
+rm(list = ls())
+```
+
